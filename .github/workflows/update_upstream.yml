@@ -1,4 +1,4 @@
-name: Update upstream tag
+name: update tag
 
 on:
   workflow_dispatch:
@@ -24,13 +24,13 @@ jobs:
           latest=$(gh release view --repo astral-sh/python-build-standalone --json tagName --jq '.tagName')
           echo "tag=$latest" >> "$GITHUB_OUTPUT"
 
-      - name: Get current tag from build.yml
+      - name: Get current tag from UPSTREAM_TAG file
         id: current
         run: |
-          current=$(grep 'UPSTREAM_TAG:' .github/workflows/build.yml | sed 's/.*UPSTREAM_TAG: *"\(.*\)".*/\1/')
+          current=$(cat UPSTREAM_TAG)
           echo "tag=$current" >> "$GITHUB_OUTPUT"
 
-      - name: Update build.yml if outdated
+      - name: Update UPSTREAM_TAG file if outdated
         id: changes
         run: |
           latest="${{ steps.upstream.outputs.tag }}"
@@ -43,7 +43,7 @@ jobs:
           fi
 
           echo "Updating UPSTREAM_TAG from $current to $latest"
-          sed -i "s/UPSTREAM_TAG: \"${current}\"/UPSTREAM_TAG: \"${latest}\"/" .github/workflows/build.yml
+          echo "$latest" > UPSTREAM_TAG
           echo "has_changes=true" >> "$GITHUB_OUTPUT"
           echo "latest=$latest" >> "$GITHUB_OUTPUT"
           echo "current=$current" >> "$GITHUB_OUTPUT"
@@ -70,7 +70,7 @@ jobs:
           fi
 
           git checkout -b "${branch}"
-          git add .github/workflows/build.yml
+          git add UPSTREAM_TAG
           git commit -s -m "chore: update UPSTREAM_TAG from ${current} to ${latest}"
           git push origin "${branch}" -f
 
@@ -78,4 +78,4 @@ jobs:
             --base main \
             --head "${branch}" \
             --title "chore: update UPSTREAM_TAG from ${current} to ${latest}" \
-            --body "Automated update of \`UPSTREAM_TAG\` in \`build.yml\` from \`${current}\` to \`${latest}\` from [astral-sh/python-build-standalone](https://github.com/astral-sh/python-build-standalone/releases/tag/${latest})."
+            --body "Automated update of \`UPSTREAM_TAG\` from \`${current}\` to \`${latest}\` from [astral-sh/python-build-standalone](https://github.com/astral-sh/python-build-standalone/releases/tag/${latest})."

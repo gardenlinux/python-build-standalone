@@ -8,7 +8,6 @@ on:
 
 env:
   UPSTREAM_REPO: astral-sh/python-build-standalone
-  UPSTREAM_TAG: "20260901"
   PYTHON_VERSION: "3.14"
   BUILD_OPTIONS: "pgo+lto"
 
@@ -22,11 +21,15 @@ jobs:
         with:
           path: patch-repo
 
+      - name: Read UPSTREAM_TAG
+        id: upstream_tag
+        run: echo "tag=$(cat patch-repo/UPSTREAM_TAG)" >> "$GITHUB_OUTPUT"
+
       - name: Checkout upstream python-build-standalone
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ env.UPSTREAM_REPO }}
-          ref: ${{ env.UPSTREAM_TAG }}
+          ref: ${{ steps.upstream_tag.outputs.tag }}
           path: python-build-standalone
 
       - name: Apply no-libdb patch
@@ -106,11 +109,15 @@ jobs:
         with:
           path: patch-repo
 
+      - name: Read UPSTREAM_TAG
+        id: upstream_tag
+        run: echo "tag=$(cat patch-repo/UPSTREAM_TAG)" >> "$GITHUB_OUTPUT"
+
       - name: Checkout upstream python-build-standalone
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ env.UPSTREAM_REPO }}
-          ref: ${{ env.UPSTREAM_TAG }}
+          ref: ${{ steps.upstream_tag.outputs.tag }}
           path: python-build-standalone
 
       - name: Apply no-libdb patch
