@@ -218,6 +218,22 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+      - name: Rename artifacts to astral-sh compatible naming
+        run: |
+          # Rename from: cpython-VERSION-ARCH-unknown-linux-gnu-install_only-DATETtime.tar.gz
+          # Rename to:   cpython-VERSION+DATE-ARCH-unknown-linux-gnu-install_only.tar.gz
+          # This matches the astral-sh naming convention so that gardenlinux/gardenlinux
+          # update_runtime.py and build_runtime.sh require no changes.
+          for f in dist/cpython-*install_only*.tar.gz; do
+            base=$(basename "$f")
+            version=$(echo "$base" | sed 's/cpython-\([0-9]*\.[0-9]*\.[0-9]*\)-.*/\1/')
+            arch=$(echo "$base" | sed 's/cpython-[^-]*-\([^-]*\)-.*/\1/')
+            date=$(echo "$base" | sed 's/.*-install_only-\([0-9]\{8\}\).*/\1/')
+            newname="cpython-${version}+${date}-${arch}-unknown-linux-gnu-install_only.tar.gz"
+            mv "$f" "dist/${newname}"
+            echo "Renamed: $base -> $newname"
+          done
+
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
