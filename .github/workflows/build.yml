@@ -12,8 +12,8 @@ env:
   BUILD_OPTIONS: "pgo+lto"
 
 jobs:
-  build-x86_64:
-    name: Build cpython 3.14 x86_64
+  build-amd64:
+    name: Build cpython 3.14 amd64
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout patch repo
@@ -47,7 +47,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             python-build-standalone/target
-          key: ${{ runner.os }}-x86_64-pythonbuild-${{ hashFiles('python-build-standalone/Cargo.lock') }}
+          key: ${{ runner.os }}-amd64-pythonbuild-${{ hashFiles('python-build-standalone/Cargo.lock') }}
 
       - name: Build pythonbuild tool
         run: |
@@ -69,18 +69,18 @@ jobs:
         run: |
           cd python-build-standalone
           docker build \
-            --tag cpython-build-x86_64 \
+            --tag cpython-build-amd64 \
             --file build/build.debian13-x86_64.Dockerfile \
             .
           # Save image id and tar in the format pythonbuild expects:
           # build/image-<name>.linux_<arch> and build/image-<name>.linux_<arch>.tar
           mkdir -p build
-          docker inspect --format='{{.Id}}' cpython-build-x86_64 \
+          docker inspect --format='{{.Id}}' cpython-build-amd64 \
             > build/image-build.debian13-x86_64.linux_x86_64
-          docker save cpython-build-x86_64 \
+          docker save cpython-build-amd64 \
             | zstd -T0 -6 > build/image-build.debian13-x86_64.linux_x86_64.tar.zst
 
-      - name: Build CPython ${{ env.PYTHON_VERSION }} x86_64
+      - name: Build CPython ${{ env.PYTHON_VERSION }} amd64
         run: |
           cd python-build-standalone
           uv run ./build.py \
@@ -88,20 +88,20 @@ jobs:
             --python cpython-${{ env.PYTHON_VERSION }} \
             --options ${{ env.BUILD_OPTIONS }}
 
-      - name: Convert x86_64 to install_only
+      - name: Convert amd64 to install_only
         run: |
           cd python-build-standalone
           ./target/release/pythonbuild convert-install-only dist/cpython-*x86_64-unknown-linux-gnu-*.tar.zst
 
-      - name: Upload x86_64 artifacts
+      - name: Upload amd64 artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: dist-x86_64
+          name: dist-amd64
           path: python-build-standalone/dist/cpython-*x86_64-unknown-linux-gnu-install_only*.tar.gz
           retention-days: 1
 
-  build-aarch64:
-    name: Build cpython 3.14 aarch64
+  build-arm64:
+    name: Build cpython 3.14 arm64
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout patch repo
@@ -135,7 +135,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             python-build-standalone/target
-          key: ${{ runner.os }}-aarch64-pythonbuild-${{ hashFiles('python-build-standalone/Cargo.lock') }}
+          key: ${{ runner.os }}-arm64-pythonbuild-${{ hashFiles('python-build-standalone/Cargo.lock') }}
 
       - name: Build pythonbuild tool
         run: |
@@ -157,16 +157,16 @@ jobs:
         run: |
           cd python-build-standalone
           docker build \
-            --tag cpython-build-aarch64 \
+            --tag cpython-build-arm64 \
             --file build/build.debian13.Dockerfile \
             .
           mkdir -p build
-          docker inspect --format='{{.Id}}' cpython-build-aarch64 \
+          docker inspect --format='{{.Id}}' cpython-build-arm64 \
             > build/image-build.debian13.linux_aarch64
-          docker save cpython-build-aarch64 \
+          docker save cpython-build-arm64 \
             | zstd -T0 -6 > build/image-build.debian13.linux_aarch64.tar.zst
 
-      - name: Build CPython ${{ env.PYTHON_VERSION }} aarch64
+      - name: Build CPython ${{ env.PYTHON_VERSION }} arm64
         run: |
           cd python-build-standalone
           uv run ./build.py \
@@ -174,36 +174,36 @@ jobs:
             --python cpython-${{ env.PYTHON_VERSION }} \
             --options ${{ env.BUILD_OPTIONS }}
 
-      - name: Convert aarch64 to install_only
+      - name: Convert arm64 to install_only
         run: |
           cd python-build-standalone
           ./target/release/pythonbuild convert-install-only dist/cpython-*aarch64-unknown-linux-gnu-*.tar.zst
 
-      - name: Upload aarch64 artifacts
+      - name: Upload arm64 artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: dist-aarch64
+          name: dist-arm64
           path: python-build-standalone/dist/cpython-*aarch64-unknown-linux-gnu-install_only*.tar.gz
           retention-days: 1
 
   release:
     name: Publish release
-    needs: [build-x86_64, build-aarch64]
+    needs: [build-amd64, build-arm64]
     runs-on: ubuntu-24.04
     if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
     steps:
-      - name: Download x86_64 artifacts
+      - name: Download amd64 artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: dist-x86_64
+          name: dist-amd64
           path: dist
 
-      - name: Download aarch64 artifacts
+      - name: Download arm64 artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: dist-aarch64
+          name: dist-arm64
           path: dist
 
       - name: Determine release tag
